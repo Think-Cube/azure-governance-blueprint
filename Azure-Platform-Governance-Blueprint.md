@@ -2,9 +2,10 @@
 
 ## Change History
 
-| Version | Date       | Author            | Description                  |
-|---------|------------|-----------------|------------------------------|
-| 1.0     | 20.02.2026 | Think-Cube | Initial version created      |
+| Version | Date       | Author     | Description                                          |
+|---------|------------|------------|------------------------------------------------------|
+| 1.0     | 20.02.2026 | Think-Cube | Initial version created                              |
+| 1.1     | 05.10.2026 | Think-Cube | Updated Azure AD → Microsoft Entra ID; fixed App Insights classic retirement date; added Azure Landing Zones, Container Apps, AKS, AVM, Azure Policy section; expanded Cost Management |
 
 ---
 
@@ -29,7 +30,7 @@ This framework assumes prior experience with Azure and focuses on operational an
 
 ### 1.3 Scope
 
-The document does **not cover Azure AD or identity management governance**. A separate, comprehensive disaster recovery plan should also be developed independently.
+The document does **not cover Microsoft Entra ID or identity management governance** (formerly Azure Active Directory). For Entra ID governance — including Privileged Identity Management (PIM), Conditional Access, and Identity Protection — refer to the [Microsoft Entra documentation](https://learn.microsoft.com/en-us/entra/). A separate, comprehensive disaster recovery plan should also be developed independently.
 
 ---
 
@@ -37,7 +38,11 @@ The document does **not cover Azure AD or identity management governance**. A se
 
 Management in Azure is organized across four primary levels. This section defines how governance is applied at each level within an organization.
 
-> **Reference:** [CAF Management Levels and Hierarchy](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-setup-guide/organize-resources#management-levels-and-hierarchy)
+For organizations starting from scratch or scaling to enterprise, the **Azure Landing Zone** architecture is the recommended foundation. It provides pre-built, opinionated configurations for identity, networking, security, and management that align with CAF.
+
+> **References:**
+> - [CAF Management Levels and Hierarchy](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-setup-guide/organize-resources#management-levels-and-hierarchy)
+> - [Azure Landing Zones](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/) – Proven enterprise-scale reference architectures for Azure environments.
 
 ### 2.1 Management Groups
 
@@ -153,8 +158,9 @@ The Azure Activity Log captures subscription-level events, providing audit visib
 Application Insights enables telemetry and monitoring for applications and services.
 
 **Recommendations:**
-- Deploy Application Insights for all supported services (App Services, Function Apps, etc.).  
-- Configure Workspace mode, as the classic model will be deprecated.  
+- Deploy Application Insights for all supported services (App Services, Function Apps, Container Apps, etc.).
+- Use Workspace-based Application Insights only — the classic (non-workspace) model was **retired on February 29, 2024**.
+- Link Application Insights to a dedicated Log Analytics Workspace for centralized querying and retention control.
 - Adjust data retention to meet organizational requirements.
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
@@ -188,8 +194,41 @@ Azure App Configuration centralizes application settings and feature flags.
 ### 5.2 Azure App Service / Function Apps
 
 **Recommendations:**
-- Implement Azure Policies to block FTP access.  
+- Implement Azure Policies to block FTP access.
 - Require HTTPS for all App Service and Function App deployments.
+- Use Always On for production App Service plans to prevent cold starts.
+- Enforce minimum TLS version 1.2 via Azure Policy.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+### 5.3 Azure Container Apps
+
+Azure Container Apps is a serverless container platform built on Kubernetes, suitable for microservices, event-driven workloads, and background jobs.
+
+> **Reference:** [Azure Container Apps documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
+
+**Recommendations:**
+- Deploy Container Apps into a dedicated Container Apps Environment backed by a VNET for network isolation.
+- Use Managed Identity for all outbound service connections (Key Vault, Storage, Service Bus).
+- Enable ingress restrictions — expose only the minimum required traffic externally.
+- Define CPU and memory limits per container to prevent resource exhaustion.
+- Use Dapr where appropriate for service-to-service communication, state management, and pub/sub.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+### 5.4 Azure Kubernetes Service (AKS)
+
+AKS provides managed Kubernetes for containerized workloads requiring fine-grained control over orchestration.
+
+> **Reference:** [AKS baseline architecture](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks/baseline-aks)
+
+**Recommendations:**
+- Use the AKS baseline architecture as a starting point for production clusters.
+- Enable Microsoft Defender for Containers.
+- Use managed node pools with automatic upgrades enabled.
+- Restrict cluster API server access to authorized IP ranges or private cluster mode.
+- Use Workload Identity (Microsoft Entra Workload ID) instead of pod-managed identity (deprecated).
+- Enforce policies via Azure Policy for Kubernetes (Gatekeeper).
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
 
@@ -227,6 +266,9 @@ Managed Identities provide secure authentication for service-to-service communic
 
 **Recommendations:**
 - Prefer Managed Identity over direct credentials for all supported services.
+- Prefer **User-Assigned Managed Identity** over System-Assigned where multiple resources share the same identity or where the identity lifecycle must be managed independently of the resource.
+- Use **Workload Identity Federation** for workloads running outside Azure (e.g., GitHub Actions, Azure DevOps pipelines) to authenticate without storing secrets.
+- Apply least-privilege RBAC roles to managed identities — avoid Contributor or Owner where a narrower role suffices.
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
 
@@ -357,10 +399,31 @@ Virtual Networks provide isolation and secure connectivity.
 
 ### 7.3 Cost Management
 
+> **Reference:** [Microsoft Cost Management documentation](https://learn.microsoft.com/en-us/azure/cost-management-billing/)
+
 #### 7.3.1 Budget Alerts
 
 **Recommendations:**
-- Monitor costs actively, especially for serverless or dynamic environments.
+- Define budgets at subscription and resource group level with alerts at 80% and 100% of threshold.
+- Monitor costs actively, especially for serverless, dynamic, or AI/ML environments where consumption can spike unexpectedly.
+- Configure budget alerts to notify both technical and finance stakeholders.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+#### 7.3.2 Cost Allocation
+
+**Recommendations:**
+- Enforce a mandatory tagging policy (e.g., `CostCenter`, `Owner`, `Environment`) via Azure Policy to enable cost allocation across teams.
+- Use **Azure Cost Management + Billing** views and exports to distribute cost reports per team or product.
+- Review and right-size resources monthly — use Azure Advisor cost recommendations as a baseline.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+#### 7.3.3 Cost Anomaly Detection
+
+**Recommendations:**
+- Enable **anomaly detection alerts** in Microsoft Cost Management to catch unexpected spend spikes automatically.
+- Review anomaly alerts weekly; investigate any deviation above an agreed threshold before month-end.
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
 
@@ -373,9 +436,14 @@ Ensuring business continuity and rapid recovery is critical.
 ### 8.1 Infrastructure as Code (IaC) Policy
 
 **Recommendations:**
-- Implement all resource deployments via IaC.  
-- Prefer Bicep or Terraform templates over manual deployments.  
-- Maintain version control and enforce PR-based reviews.
+- Implement all resource deployments via IaC.
+- Prefer **Bicep** for Azure-native deployments or **Terraform** for multi-cloud or existing Terraform estates.
+- Use **Azure Verified Modules (AVM)** — the official Microsoft-maintained library of reusable Bicep and Terraform modules — as a starting point before writing custom modules.
+- Maintain version control and enforce PR-based reviews for all IaC changes.
+- Store IaC state (for Terraform) in Azure Storage Account with state locking enabled.
+- Use **What-if** (Bicep/ARM) or `terraform plan` in CI pipelines to preview changes before apply.
+
+> **Reference:** [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/)
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
 
@@ -397,7 +465,59 @@ Ensuring business continuity and rapid recovery is critical.
 ### 8.4 Database Backups
 
 **Recommendations:**
-- Implement automated backup policies for all critical databases.  
+- Implement automated backup policies for all critical databases.
 - Test restore procedures periodically.
+- Define Recovery Time Objective (RTO) and Recovery Point Objective (RPO) per service and align backup frequency accordingly.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+---
+
+## 9.0 Azure Policy Management
+
+Azure Policy is the primary enforcement mechanism for governance across the Azure platform. It evaluates resources against defined rules and can audit, deny, or automatically remediate non-compliant resources.
+
+> **Reference:** [Azure Policy documentation](https://learn.microsoft.com/en-us/azure/governance/policy/)
+
+### 9.1 Policy Assignment Strategy
+
+**Recommendations:**
+- Assign policies at the **Management Group** level for organization-wide enforcement; use subscription or resource group scope only for exceptions.
+- Use **Policy Initiatives** (policy sets) to group related policies — prefer built-in initiatives (e.g., Azure Security Benchmark, ISO 27001, NIST SP 800-53) before creating custom ones.
+- Set new policies to **Audit** mode first; switch to **Deny** only after validating impact in non-production environments.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+### 9.2 Built-in Initiatives
+
+Microsoft provides built-in regulatory compliance initiatives that can be assigned out-of-the-box:
+
+- **Microsoft Cloud Security Benchmark (MCSB)** — enabled by default in Defender for Cloud
+- **ISO 27001:2013**
+- **NIST SP 800-53 Rev. 5**
+- **PCI DSS v4**
+- **CIS Microsoft Azure Foundations Benchmark**
+
+**Recommendations:**
+- Assign the relevant compliance initiative to the root management group to get an organization-wide compliance score.
+- Review the compliance dashboard in Defender for Cloud monthly.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+### 9.3 Remediation
+
+**Recommendations:**
+- Configure **remediation tasks** for `deployIfNotExists` and `modify` policies to automatically bring existing resources into compliance.
+- Assign a **Managed Identity** to policies that perform remediation — scope its permissions to the minimum required.
+- Track remediation progress via the Azure Policy compliance dashboard.
+
+[REPLACE THIS PLACEHOLDER WITH YOUR POLICY]
+
+### 9.4 Exemptions
+
+**Recommendations:**
+- Use **policy exemptions** (waiver or mitigated) rather than assigning exclusion scopes, to maintain an audit trail.
+- Set an expiry date on all exemptions and review them quarterly.
+- Document the business justification for every active exemption.
 
 [REPLACE THIS PLACEHOLDER WITH YOUR POLICY]

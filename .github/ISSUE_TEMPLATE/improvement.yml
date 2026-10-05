@@ -1,0 +1,49 @@
+name: Improvement
+description: Suggest an improvement, addition, or update to the governance blueprint
+title: "Improve: "
+labels: ["improvement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve this blueprint! Please fill in the details below.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Governance Area
+      description: Which section does this improvement relate to?
+      options:
+        - Management Hierarchy
+        - Naming Conventions
+        - Compliance
+        - Azure Resource Recommendations
+        - Security
+        - Operational Excellence
+        - Disaster Recovery
+        - General / Multiple Areas
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current State
+      description: What does the blueprint currently say (or not say) about this topic?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed Change
+      description: What should it say instead? Include references to CAF/WAF where applicable.
+    validations:
+      required: true
+
+  - type: input
+    id: reference
+    attributes:
+      label: Reference (optional)
+      description: Link to Microsoft Learn, CAF, or WAF documentation supporting this change.
+      placeholder: https://learn.microsoft.com/...
