@@ -1,0 +1,38 @@
+name: Outdated or Incorrect Content
+description: Report guidance that is outdated, incorrect, or no longer aligned with Azure best practices
+title: "Outdated: "
+labels: ["outdated", "triage"]
+body:
+  - type: input
+    id: section
+    attributes:
+      label: Section / Heading
+      description: Which section of the blueprint is affected?
+      placeholder: "e.g. 6.1 Microsoft Defender for Cloud"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is outdated or incorrect?
+      description: Describe the problem clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: What should it say instead?
+    validations:
+      required: false
+
+  - type: input
+    id: reference
+    attributes:
+      label: Reference
+      description: Link to updated Microsoft documentation.
+      placeholder: https://learn.microsoft.com/...
+    validations:
+      required: false
